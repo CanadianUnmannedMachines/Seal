@@ -1,0 +1,13 @@
+[package]
+name = "deno-android-jni"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# Output filename: libseal_deno.so
+name = "seal_deno"
+crate-type = ["cdylib"]
+
+[dependencies]
+# Resolved from [patch.crates-io] in the workspace root Cargo.toml → third_party/deno/libs/core
+deno_core = { version = "0.396.0", default-features = false, features = ["include_icu_data"] }

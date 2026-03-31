@@ -109,6 +109,9 @@ object DownloadUtil {
                     if (forceIpv4) {
                         addOption("-4")
                     }
+                    if (denoJsRuntime) {
+                        addOption("--js-interpreters", DenoRuntime.cliPath)
+                    }
                     if (cookies) {
                         enableCookies(userAgentString)
                     }
@@ -162,6 +165,9 @@ object DownloadUtil {
                     }
                     if (forceIpv4) {
                         addOption("-4")
+                    }
+                    if (denoJsRuntime) {
+                        addOption("--js-interpreters", DenoRuntime.cliPath)
                     }
                     /*            if (debug) {
                         addOption("-v")
@@ -239,6 +245,7 @@ object DownloadUtil {
         val forceIpv4: Boolean,
         val mergeAudioStream: Boolean,
         val mergeToMkv: Boolean,
+        val denoJsRuntime: Boolean,
     ) {
         companion object {
             val EMPTY =
@@ -294,6 +301,7 @@ object DownloadUtil {
                     mergeAudioStream = false,
                     mergeToMkv = false,
                     useCustomAudioPreset = false,
+                    denoJsRuntime = false,
                 )
 
             fun createFromPreferences(): DownloadPreferences {
@@ -353,6 +361,7 @@ object DownloadUtil {
                     mergeAudioStream = false,
                     mergeToMkv =
                         (downloadSubtitle && embedSubtitle) || MERGE_OUTPUT_MKV.getBoolean(),
+                    denoJsRuntime = DENO.getBoolean(),
                 )
             }
         }
@@ -696,6 +705,9 @@ object DownloadUtil {
                     }
                     if (forceIpv4) {
                         addOption("-4")
+                    }
+                    if (denoJsRuntime) {
+                        addOption("--js-interpreters", DenoRuntime.cliPath)
                     }
                     if (debug) {
                         addOption("-v")

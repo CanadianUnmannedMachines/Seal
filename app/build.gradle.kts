@@ -66,6 +66,17 @@ android {
         } else {
             ndk { abiFilters.addAll(abiFilterList) }
         }
+
+        externalNativeBuild {
+            cmake { cppFlags += "-std=c++17" }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     room { schemaDirectory("$projectDir/schemas") }

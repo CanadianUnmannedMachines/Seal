@@ -24,6 +24,8 @@ import com.junkfood.seal.ui.page.settings.network.CookiesViewModel
 import com.junkfood.seal.ui.page.videolist.VideoListViewModel
 import com.junkfood.seal.util.AUDIO_DIRECTORY
 import com.junkfood.seal.util.COMMAND_DIRECTORY
+import com.junkfood.seal.util.DENO
+import com.junkfood.seal.util.PreferenceUtil.getBoolean
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FileUtil
 import com.junkfood.seal.util.FileUtil.createEmptyFile
@@ -35,6 +37,7 @@ import com.junkfood.seal.util.PreferenceUtil
 import com.junkfood.seal.util.PreferenceUtil.getString
 import com.junkfood.seal.util.PreferenceUtil.updateString
 import com.junkfood.seal.util.SDCARD_URI
+import com.junkfood.seal.util.DenoRuntime
 import com.junkfood.seal.util.UpdateUtil
 import com.junkfood.seal.util.VIDEO_DIRECTORY
 import com.junkfood.seal.util.YT_DLP_VERSION
@@ -91,6 +94,7 @@ class App : Application() {
                 YoutubeDL.init(this@App)
                 FFmpeg.init(this@App)
                 Aria2c.init(this@App)
+                if (DENO.getBoolean()) DenoRuntime.initialize(applicationScope)
                 DownloadUtil.getCookiesContentFromDatabase().getOrNull()?.let {
                     FileUtil.writeContentToFile(it, getCookiesFile())
                 }

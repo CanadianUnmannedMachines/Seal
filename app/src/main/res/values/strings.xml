@@ -365,6 +365,9 @@
     <string name="system_settings">System settings</string>
     <string name="force_ipv4">Force IPv4</string>
     <string name="force_ipv4_desc">Make all connections via IPv4</string>
+    <string name="deno_js_runtime" translatable="false">Deno</string>
+    <string name="deno_js_runtime_desc">Use Deno as the JavaScript runtime for sites that require JS evaluation (e.g. YouTube)</string>
+    <string name="deno_bundled_desc">The Deno JavaScript runtime is bundled with the app as a shared library. When enabled, yt-dlp uses it to evaluate JavaScript challenges (e.g. YouTube\'s n-parameter deobfuscation) in-process without spawning an external binary.</string>
     <string name="keep_subtitle_files">Keep subtitle files</string>
     <string name="allow_once">Allow once</string>
     <string name="allow_always">Allow always</string>

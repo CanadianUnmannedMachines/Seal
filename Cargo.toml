@@ -1,0 +1,10 @@
+[workspace]
+members = ["deno-android-jni"]
+resolver = "2"
+
+# Redirect `deno_core` to the local submodule so our JNI wrapper crate picks up
+# the same source that is being sparse-checked-out in third_party/deno.
+# Cargo will follow third_party/deno/Cargo.toml for workspace-level keys
+# (edition, authors, dependency versions, etc.) used by deno_core's own Cargo.toml.
+[patch.crates-io]
+deno_core = { path = "third_party/deno/libs/core" }
