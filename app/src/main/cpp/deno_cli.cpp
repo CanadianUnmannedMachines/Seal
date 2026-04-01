@@ -1,106 +1,138 @@
-// deno_cli — stdin → DenoRuntime abstract socket → stdout
+// quickjs_cli — standalone QuickJS-NG evaluator for yt-dlp
 //
-// yt-dlp spawns this binary (extracted to the exec-allowed native library
-// directory) when --js-interpreters points to it.  It reads the JavaScript
-// expression from stdin, forwards it to the in-process DenoRuntime via an
-// Android abstract Unix-domain socket, and writes the result to stdout.
+// yt-dlp spawns this binary via --js-runtimes quickjs:/path/to/libquickjs-cli.so
+// It behaves like the standard `qjs` CLI so yt-dlp can invoke it normally.
+//
+// Supported usage:
+//   libquickjs-cli.so [options] [file]
+//   -e CODE        evaluate inline JavaScript
+//   --std          enable std/os modules (accepted but ignored — always on)
+//   file           evaluate a script file
+//   (no args)      read from stdin
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <android/log.h>
 
-#define TAG     "denoCli"
+extern "C" {
+#include "quickjs.h"
+#include "quickjs-libc.h"
+}
+
+#define TAG "quickjsCli"
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,  TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
-// Must match DenoRuntime.SOCKET_NAME on the Kotlin side.
-static constexpr char SOCKET_NAME[] = "seal_deno_runtime";
-
-static int connect_to_runtime() {
-    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd < 0) { LOGE("socket() failed: %s", strerror(errno)); return -1; }
-
-    struct sockaddr_un addr{};
-    addr.sun_family = AF_UNIX;
-    // Abstract socket: first byte is '\0', name follows.
-    addr.sun_path[0] = '\0';
-    strncpy(addr.sun_path + 1, SOCKET_NAME, sizeof(addr.sun_path) - 2);
-    socklen_t len = offsetof(struct sockaddr_un, sun_path) + 1 + strlen(SOCKET_NAME);
-
-    if (connect(fd, reinterpret_cast<sockaddr*>(&addr), len) < 0) {
-        LOGE("connect() failed: %s", strerror(errno));
-        close(fd);
-        return -1;
+static std::string read_file(const char* path) {
+    FILE* f = fopen(path, "rb");
+    if (!f) {
+        LOGE("cannot open file: %s", path);
+        fprintf(stderr, "quickjs-cli: cannot open %s\n", path);
+        exit(1);
     }
-    return fd;
+    std::string out;
+    char buf[4096];
+    while (size_t n = fread(buf, 1, sizeof(buf), f)) out.append(buf, n);
+    fclose(f);
+    LOGD("read file %s (%zu bytes)", path, out.size());
+    return out;
 }
 
-static bool send_all(int fd, const void* buf, size_t n) {
-    const auto* p = static_cast<const char*>(buf);
-    while (n > 0) {
-        ssize_t sent = send(fd, p, n, 0);
-        if (sent <= 0) return false;
-        p += sent; n -= sent;
+static std::string read_stdin() {
+    std::string out;
+    char buf[4096];
+    while (true) {
+        ssize_t n = read(STDIN_FILENO, buf, sizeof(buf));
+        if (n <= 0) break;
+        out.append(buf, static_cast<size_t>(n));
     }
-    return true;
+    LOGD("read stdin (%zu bytes)", out.size());
+    return out;
 }
 
-static bool recv_all(int fd, void* buf, size_t n) {
-    auto* p = static_cast<char*>(buf);
-    while (n > 0) {
-        ssize_t got = recv(fd, p, n, 0);
-        if (got <= 0) return false;
-        p += got; n -= got;
-    }
-    return true;
-}
+int main(int argc, char** argv) {
+    LOGI("started, argc=%d", argc);
+    for (int i = 0; i < argc; i++) LOGD("  argv[%d]=%s", i, argv[i]);
 
-int main() {
-    // Read all of stdin (the JS expression yt-dlp wants evaluated).
     std::string script;
-    {
-        char buf[4096];
-        while (true) {
-            ssize_t n = read(STDIN_FILENO, buf, sizeof(buf));
-            if (n <= 0) break;
-            script.append(buf, static_cast<size_t>(n));
+    const char* filename = "<input>";
+
+    // Parse arguments like qjs: [-e code] [--std] [file]
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-e") == 0 || strcmp(argv[i], "--eval") == 0) {
+            if (++i >= argc) {
+                LOGE("-e requires an argument");
+                fprintf(stderr, "quickjs-cli: -e requires an argument\n");
+                return 1;
+            }
+            script = argv[i];
+            filename = "<cmdline>";
+            LOGD("-e script (%zu bytes)", script.size());
+        } else if (strcmp(argv[i], "--std") == 0 || strcmp(argv[i], "-m") == 0) {
+            // accepted, ignored
+        } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            fprintf(stdout, "QuickJS-ng version 0.1.0\n"
+                            "  -e CODE    evaluate inline JavaScript\n"
+                            "  --std      enable std/os modules\n"
+                            "  file       evaluate a script file\n"
+                            "  (no args)  read from stdin\n");
+            return 0;
+        } else if (argv[i][0] != '-') {
+            script = read_file(argv[i]);
+            filename = argv[i];
         }
     }
 
-    int fd = connect_to_runtime();
-    if (fd < 0) {
-        fprintf(stderr, "deno-cli: could not connect to DenoRuntime socket\n");
+    if (script.empty() && strcmp(filename, "<cmdline>") != 0) {
+        script = read_stdin();
+    }
+
+    if (script.empty()) {
+        LOGE("no script provided");
+        fprintf(stderr, "quickjs-cli: no script provided\n");
         return 1;
     }
 
-    // Protocol: [uint32_t length][utf-8 bytes] in both directions.
-    uint32_t send_len = static_cast<uint32_t>(script.size());
-    if (!send_all(fd, &send_len, sizeof(send_len)) ||
-        !send_all(fd, script.data(), send_len)) {
-        LOGE("send failed");
-        close(fd);
-        return 1;
-    }
+    LOGI("evaluating %s (%zu bytes)", filename, script.size());
 
-    uint32_t recv_len = 0;
-    if (!recv_all(fd, &recv_len, sizeof(recv_len))) {
-        LOGE("recv length failed");
-        close(fd);
-        return 1;
-    }
-    std::string result(recv_len, '\0');
-    if (!recv_all(fd, &result[0], recv_len)) {
-        LOGE("recv body failed");
-        close(fd);
-        return 1;
-    }
-    close(fd);
+    JSRuntime* rt = JS_NewRuntime();
+    if (!rt) { LOGE("JS_NewRuntime failed"); fprintf(stderr, "quickjs-cli: JS_NewRuntime failed\n"); return 1; }
 
-    fwrite(result.data(), 1, result.size(), stdout);
-    fputc('\n', stdout);
-    return 0;
+    JSContext* ctx = JS_NewContext(rt);
+    if (!ctx) { LOGE("JS_NewContext failed"); JS_FreeRuntime(rt); fprintf(stderr, "quickjs-cli: JS_NewContext failed\n"); return 1; }
+
+    js_std_add_helpers(ctx, 0, NULL);
+
+    JSValue val = JS_Eval(ctx, script.c_str(), script.size(), filename, JS_EVAL_TYPE_GLOBAL);
+
+    int ret = 0;
+    if (JS_IsException(val)) {
+        JSValue exc = JS_GetException(ctx);
+        const char* str = JS_ToCString(ctx, exc);
+        LOGE("exception: %s", str ? str : "unknown");
+        fprintf(stderr, "quickjs-cli: %s\n", str ? str : "unknown error");
+        if (str) JS_FreeCString(ctx, str);
+        JS_FreeValue(ctx, exc);
+        ret = 1;
+    } else if (!JS_IsUndefined(val)) {
+        const char* str = JS_ToCString(ctx, val);
+        if (str) {
+            LOGI("result: %.200s%s", str, strlen(str) > 200 ? "..." : "");
+            fputs(str, stdout);
+            fputc('\n', stdout);
+            JS_FreeCString(ctx, str);
+        }
+    } else {
+        LOGD("result: undefined");
+    }
+    JS_FreeValue(ctx, val);
+
+    JS_FreeContext(ctx);
+    JS_FreeRuntime(rt);
+    LOGI("exit %d", ret);
+    return ret;
 }

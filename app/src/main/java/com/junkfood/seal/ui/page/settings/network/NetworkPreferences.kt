@@ -39,8 +39,8 @@ import com.junkfood.seal.util.CELLULAR_DOWNLOAD
 import com.junkfood.seal.util.COOKIES
 import com.junkfood.seal.util.CUSTOM_COMMAND
 import com.junkfood.seal.App.Companion.applicationScope
-import com.junkfood.seal.util.DENO
-import com.junkfood.seal.util.DenoRuntime
+import com.junkfood.seal.util.QUICKJS
+
 import com.junkfood.seal.util.FORCE_IPV4
 import com.junkfood.seal.util.PROXY
 import com.junkfood.seal.util.PreferenceUtil.getBoolean
@@ -60,12 +60,12 @@ fun NetworkPreferences(navigateToCookieProfilePage: () -> Unit = {}, onNavigateB
     var showConcurrentDownloadDialog by remember { mutableStateOf(false) }
     var showRateLimitDialog by remember { mutableStateOf(false) }
     var showProxyDialog by remember { mutableStateOf(false) }
-    var showDenoDialog by remember { mutableStateOf(false) }
+    var showQuickJsDialog by remember { mutableStateOf(false) }
     var aria2c by remember { mutableStateOf(ARIA2C.getBoolean()) }
     var proxy by PROXY.booleanState
     var isCookiesEnabled by COOKIES.booleanState
     var forceIpv4 by FORCE_IPV4.booleanState
-    var denoJsRuntime by DENO.booleanState
+    var quickJsRuntime by QUICKJS.booleanState
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -173,18 +173,16 @@ fun NetworkPreferences(navigateToCookieProfilePage: () -> Unit = {}, onNavigateB
                 }
                 item {
                     PreferenceSwitchWithDivider(
-                        title = stringResource(R.string.deno_js_runtime),
-                        description = stringResource(R.string.deno_js_runtime_desc),
+                        title = stringResource(R.string.quickjs_runtime),
+                        description = stringResource(R.string.quickjs_runtime_desc),
                         icon = Icons.Outlined.Code,
                         enabled = !isCustomCommandEnabled,
-                        isChecked = denoJsRuntime,
+                        isChecked = quickJsRuntime,
                         onChecked = {
-                            denoJsRuntime = !denoJsRuntime
-                            DENO.updateBoolean(denoJsRuntime)
-                            if (denoJsRuntime) DenoRuntime.initialize(applicationScope)
-                            else DenoRuntime.destroy()
+                            quickJsRuntime = !quickJsRuntime
+                            QUICKJS.updateBoolean(quickJsRuntime)
                         },
-                        onClick = { showDenoDialog = true },
+                        onClick = { showQuickJsDialog = true },
                     )
                 }
                 item {
@@ -209,7 +207,7 @@ fun NetworkPreferences(navigateToCookieProfilePage: () -> Unit = {}, onNavigateB
     if (showProxyDialog) {
         ProxyConfigurationDialog { showProxyDialog = false }
     }
-    if (showDenoDialog) {
-        DenoDownloadDialog { showDenoDialog = false }
+    if (showQuickJsDialog) {
+        QuickJsInfoDialog { showQuickJsDialog = false }
     }
 }

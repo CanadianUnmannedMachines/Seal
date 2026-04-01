@@ -189,14 +189,14 @@ fun ProxyConfigurationDialog(onDismissRequest: () -> Unit = {}) {
 }
 
 @Composable
-fun DenoDownloadDialog(onDismissRequest: () -> Unit = {}) {
+fun QuickJsInfoDialog(onDismissRequest: () -> Unit = {}) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
         icon = { Icon(Icons.Outlined.Code, null) },
-        title = { Text(stringResource(R.string.deno_js_runtime)) },
+        title = { Text(stringResource(R.string.quickjs_runtime)) },
         text = {
             Text(
-                text = stringResource(R.string.deno_bundled_desc),
+                text = stringResource(R.string.quickjs_bundled_desc),
                 style = MaterialTheme.typography.bodyLarge,
             )
         },
