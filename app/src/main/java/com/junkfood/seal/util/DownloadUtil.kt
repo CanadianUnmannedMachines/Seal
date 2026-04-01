@@ -109,6 +109,9 @@ object DownloadUtil {
                     if (forceIpv4) {
                         addOption("-4")
                     }
+                    if (quickJsRuntime) {
+                        addOption("--remote-components", "ejs:github")
+                        addOption("--js-runtimes", "quickjs:${App.context.applicationInfo.nativeLibraryDir}/libquickjs-cli.so")                    }
                     if (cookies) {
                         enableCookies(userAgentString)
                     }
@@ -163,6 +166,9 @@ object DownloadUtil {
                     if (forceIpv4) {
                         addOption("-4")
                     }
+                    if (quickJsRuntime) {
+                        addOption("--remote-components", "ejs:github")
+                        addOption("--js-runtimes", "quickjs:${App.context.applicationInfo.nativeLibraryDir}/libquickjs-cli.so")                    }
                     /*            if (debug) {
                         addOption("-v")
                     }*/
@@ -239,6 +245,7 @@ object DownloadUtil {
         val forceIpv4: Boolean,
         val mergeAudioStream: Boolean,
         val mergeToMkv: Boolean,
+        val quickJsRuntime: Boolean,
     ) {
         companion object {
             val EMPTY =
@@ -294,6 +301,7 @@ object DownloadUtil {
                     mergeAudioStream = false,
                     mergeToMkv = false,
                     useCustomAudioPreset = false,
+                    quickJsRuntime = false,
                 )
 
             fun createFromPreferences(): DownloadPreferences {
@@ -353,6 +361,7 @@ object DownloadUtil {
                     mergeAudioStream = false,
                     mergeToMkv =
                         (downloadSubtitle && embedSubtitle) || MERGE_OUTPUT_MKV.getBoolean(),
+                    quickJsRuntime = QUICKJS.getBoolean(),
                 )
             }
         }
@@ -697,6 +706,9 @@ object DownloadUtil {
                     if (forceIpv4) {
                         addOption("-4")
                     }
+                    if (quickJsRuntime) {
+                        addOption("--remote-components", "ejs:github")
+                        addOption("--js-runtimes", "quickjs:${App.context.applicationInfo.nativeLibraryDir}/libquickjs-cli.so")                    }
                     if (debug) {
                         addOption("-v")
                     }

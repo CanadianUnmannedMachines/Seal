@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.OfflineBolt
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.VpnKey
@@ -23,8 +24,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -184,5 +185,21 @@ fun ProxyConfigurationDialog(onDismissRequest: () -> Unit = {}) {
                 onDismissRequest()
             }
         },
+    )
+}
+
+@Composable
+fun QuickJsInfoDialog(onDismissRequest: () -> Unit = {}) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        icon = { Icon(Icons.Outlined.Code, null) },
+        title = { Text(stringResource(R.string.quickjs_runtime)) },
+        text = {
+            Text(
+                text = stringResource(R.string.quickjs_bundled_desc),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        },
+        confirmButton = { DismissButton { onDismissRequest() } },
     )
 }
